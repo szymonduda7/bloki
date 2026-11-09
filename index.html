@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roblox: Unikaj spadających klocków - kody</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 860px; margin: 0 auto; padding: 20px; background: #f4f5f7; color: #1c1e21; }
+  h1 { margin-bottom: 4px; }
+  .sub { color: #666; margin-bottom: 24px; }
+  .card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+  .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .name { font-weight: 700; font-size: 1.1em; }
+  .where { color: #555; font-size: .9em; margin: 4px 0 10px; }
+  .tag { display: inline-block; background: #e3f0ff; color: #0b5cad; border-radius: 4px; padding: 1px 8px; font-size: .8em; margin-left: 6px; }
+  pre { background: #1e1e2e; color: #e6e6f0; padding: 14px; border-radius: 8px; overflow-x: auto; margin: 0; font-size: .9em; line-height: 1.45; }
+  button { background: #2f6fed; color: #fff; border: 0; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: .9em; }
+  button:hover { background: #1f5bd0; }
+</style>
+</head>
+<body>
+<h1>Unikaj spadających klocków</h1>
+<div class="sub">Gotowe skrypty do Roblox Studio (kamera top-down). Arena musi nazywać się <b>Arena</b> i leżeć w Workspace.</div>
+
+<div class="card">
+  <div class="head"><div class="name">KameraTopDown <span class="tag">LocalScript</span></div><button onclick="kopiuj(this)">Kopiuj</button></div>
+  <div class="where">Miejsce: StarterPlayer → StarterPlayerScripts</div>
+<pre>local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+camera.CameraType = Enum.CameraType.Scriptable
+
+local WYSOKOSC = 60
+
+RunService.RenderStepped:Connect(function()
+    local postac = player.Character
+    local korzen = postac and postac:FindFirstChild("HumanoidRootPart")
+    if korzen then
+        local pozycja = korzen.Position + Vector3.new(0, WYSOKOSC, 0)
+        camera.CFrame = CFrame.lookAt(pozycja, korzen.Position, Vector3.new(0, 0, -1))
+    end
+end)</pre>
+</div>
+
+<div class="card">
+  <div class="head"><div class="name">SpawnerKlockow <span class="tag">Script</span></div><button onclick="kopiuj(this)">Kopiuj</button></div>
+  <div class="where">Miejsce: ServerScriptService</div>
+<pre>local Debris = game:GetService("Debris")
+local arena = workspace.Arena
+local losuj = Random.new()
+
+local odstep = 1.2
+
+while true do
+    local klocek = Instance.new("Part")
+    klocek.Size = Vector3.new(
+        losuj:NextInteger(2, 8),
+        losuj:NextInteger(2, 8),
+        losuj:NextInteger(2, 8)
+    )
+    klocek.Color = Color3.fromHSV(losuj:NextNumber(), 0.8, 1)
+
+    local x = losuj:NextNumber(-arena.Size.X / 2, arena.Size.X / 2)
+    local z = losuj:NextNumber(-arena.Size.Z / 2, arena.Size.Z / 2)
+    klocek.Position = arena.Position + Vector3.new(x, 40, z)
+    klocek.Parent = workspace
+
+    local wyladowal = false
+
+    klocek.Touched:Connect(function(dotkniety)
+        local humanoid = dotkniety.Parent:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.Health = 0
+        elseif dotkniety == arena and not wyladowal then
+            wyladowal = true
+            Debris:AddItem(klocek, 0.3)
+        end
+    end)
+
+    Debris:AddItem(klocek, 6)
+
+    task.wait(odstep)
+    odstep = math.max(0.5, odstep - 0.02)
+end</pre>
+</div>
+
+<div class="card">
+  <div class="head"><div class="name">Leaderstats <span class="tag">Script</span></div><button onclick="kopiuj(this)">Kopiuj</button></div>
+  <div class="where">Miejsce: ServerScriptService (punkty i rekord)</div>
+<pre>local Players = game:GetService("Players")
+
+Players.PlayerAdded:Connect(function(gracz)
+    local stats = Instance.new("Folder")
+    stats.Name = "leaderstats"
+    stats.Parent = gracz
+
+    local punkty = Instance.new("IntValue")
+    punkty.Name = "Punkty"
+    punkty.Value = 0
+    punkty.Parent = stats
+
+    local rekord = Instance.new("IntValue")
+    rekord.Name = "Rekord"
+    rekord.Value = 0
+    rekord.Parent = stats
+
+    gracz.CharacterAdded:Connect(function(postac)
+        punkty.Value = 0
+        local humanoid = postac:WaitForChild("Humanoid")
+
+        humanoid.Died:Connect(function()
+            if punkty.Value &gt; rekord.Value then
+                rekord.Value = punkty.Value
+            end
+        end)
+    end)
+end)</pre>
+</div>
+
+<div class="card">
+  <div class="head"><div class="name">Monety <span class="tag">Script</span></div><button onclick="kopiuj(this)">Kopiuj</button></div>
+  <div class="where">Miejsce: ServerScriptService (moneta co 3 sekundy)</div>
+<pre>local Players = game:GetService("Players")
+local Debris = game:GetService("Debris")
+local arena = workspace.Arena
+local losuj = Random.new()
+
+while true do
+    task.wait(3)
+
+    local moneta = Instance.new("Part")
+    moneta.Shape = Enum.PartType.Cylinder
+    moneta.Size = Vector3.new(0.5, 4, 4)
+    moneta.Orientation = Vector3.new(0, 0, 90)
+    moneta.Color = Color3.fromRGB(255, 200, 0)
+    moneta.Material = Enum.Material.Neon
+    moneta.Anchored = true
+    moneta.CanCollide = false
+
+    local margines = 5
+    local x = losuj:NextNumber(-arena.Size.X / 2 + margines, arena.Size.X / 2 - margines)
+    local z = losuj:NextNumber(-arena.Size.Z / 2 + margines, arena.Size.Z / 2 - margines)
+    moneta.Position = arena.Position + Vector3.new(x, 3, z)
+    moneta.Parent = workspace
+
+    local zebrana = false
+
+    moneta.Touched:Connect(function(dotkniety)
+        if zebrana then return end
+        local gracz = Players:GetPlayerFromCharacter(dotkniety.Parent)
+        if gracz then
+            zebrana = true
+            gracz.leaderstats.Punkty.Value += 1
+            moneta:Destroy()
+        end
+    end)
+
+    Debris:AddItem(moneta, 10)
+end</pre>
+</div>
+
+<div class="card">
+  <div class="head"><div class="name">KillPart <span class="tag">Script</span></div><button onclick="kopiuj(this)">Kopiuj</button></div>
+  <div class="where">Miejsce: wewnątrz dowolnego Part (np. lawa, kolce, strefa poza areną). Ustaw Part jako Anchored.</div>
+<pre>local killPart = script.Parent
+
+killPart.Touched:Connect(function(dotkniety)
+    local humanoid = dotkniety.Parent:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.Health = 0
+    end
+end)</pre>
+</div>
+
+<script>
+function kopiuj(btn) {
+  var kod = btn.closest('.card').querySelector('pre').innerText;
+  navigator.clipboard.writeText(kod).then(function () {
+    var t = btn.textContent;
+    btn.textContent = 'Skopiowano!';
+    setTimeout(function () { btn.textContent = t; }, 1500);
+  });
+}
+</script>
+</body>
+</html>
